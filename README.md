@@ -23,10 +23,10 @@ The interface for the interactive map was built with Claude Code, using historic
 | File | Description |
 |------|-------------|
 | `C19_Obscenity_Map.html` | Self-contained interactive map (Leaflet + MarkerCluster). Open directly in a browser or embed via iframe. |
-| `Advertising_Pornography_Dataset_Addresses.csv` | The underlying georeferenced dataset (114 addresses). |
+| `Advertising_Pornography_Georeferenced_Addresses.csv` | The underlying georeferenced dataset (114 addresses). |
 | `README.md` | This file. |
 
-## Data: `Advertising_Pornography_Dataset_Addresses.csv`
+## Data: `Advertising_Pornography_Georeferenced_Addresses.csv`
 
 The CSV contains 114 records with the following variables:
 
