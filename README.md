@@ -57,7 +57,7 @@ Features:
 To embed the map on a website, host the HTML file and use an iframe:
 
 ```html
-<iframe src="victorian-ad-map.html" width="100%" height="700" style="border:none;" loading="lazy"></iframe>
+<iframe src="C19_Obscenity_Map.html" width="100%" height="700" style="border:none;" loading="lazy"></iframe>
 ```
 
 ### Dependencies (loaded from CDN)
