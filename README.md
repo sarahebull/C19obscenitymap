@@ -44,7 +44,7 @@ The CSV contains 114 records with the following variables:
 | `lon` | float | Longitude (WGS84, decimal degrees) |
 | `lat` | float | Latitude (WGS84, decimal degrees) |
 
-Names in the `description` field correspond to the Seller_ID variable _Periodical Advertising, 1822-1870_ and may be pseudonyms. In some cases, a note on the identity appears in square brackets. Year ranges indicate the span of years in which an address appeared in advertisements issued by the seller.
+Names in the `description` field correspond to the Seller_ID variable in _Periodical Advertising, 1822-1870_ and may be pseudonyms. In some cases, a note on the identity appears in square brackets. Year ranges indicate the span of years in which an address appeared in advertisements issued by the seller.
 
 ## Interactive map: `C19_Obscenity_Map.html`
 
