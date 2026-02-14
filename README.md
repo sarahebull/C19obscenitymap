@@ -85,7 +85,7 @@ Historic georeferenced map layers © [National Library of Scotland](https://maps
 
 ## Licence
 
-The data and code are published under a CC-BY 4.0 license. Note that the National Library of Scotland is the provider of the historic geographic map layers and must also be credited.
+The data and code are published under a CC-BY 4.0 license.
 
 ## Citation
 
