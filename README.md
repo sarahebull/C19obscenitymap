@@ -6,7 +6,9 @@ An interactive map of addresses published in periodical advertisements by seller
 
 ## Author
 Sarah Bull
+
 Toronto Metropolitan University
+
 sarah.bull@torontomu.ca
 
 ## About the project
