@@ -26,7 +26,7 @@ Updates data and code files were uploaded on 2026-02-16. Changes are described b
 
 | File | Description |
 |------|-------------|
-| `C19_Obscenity_Map.html` | Self-contained interactive map (Leaflet + MarkerCluster). Open directly in a browser or embed via iframe. |
+| `C19_Obscenity_Map_2.0.html` | Self-contained interactive map (Leaflet + MarkerCluster). Open directly in a browser or embed via iframe. |
 | `Advertising_Pornography_Georeferenced_Addresses.csv` | The underlying georeferenced dataset (114 addresses). |
 | `README.md` | This file. |
 
@@ -61,7 +61,7 @@ A corrected version of this file was uploaded on 2026-02-16 with the following c
 - 8 coordinate corrections (William Benbow, T.T.T, Mons Louise, Thomas Paine Carlile, William Ward, Edward Duncombe, Edward Dyer, Henry Reynolds)
 - 1 entry removed: duplicate Eugene Alfred Judge at "Potter's Bar, London, N." (the "Little Heath, Potter's Bar" entry remains)
 
-## Interactive map: `C19_Obscenity_Map.html`
+## Interactive map: `C19_Obscenity_Map_2.0.html`
 
 The map is a single self-contained HTML file with all data embedded as JSON. It requires no server — open it locally in a browser or host it as a static file.
 
@@ -76,7 +76,7 @@ Features:
 To embed the map on a website, host the HTML file and use an iframe:
 
 ```html
-<iframe src="C19_Obscenity_Map.html" width="100%" height="700" style="border:none;" loading="lazy"></iframe>
+<iframe src="C19_Obscenity_Map_2.0.html" width="100%" height="700" style="border:none;" loading="lazy"></iframe>
 ```
 An enhanced version of the map was uploaded on 2026-02-16 with the following features:
 
