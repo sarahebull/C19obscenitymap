@@ -20,7 +20,7 @@ The majority of the addresses represented in this map are in central London, con
 
 The interface for the interactive map was built with Claude Code, using historic georeferenced map layers from the National Library of Scotland and advice for users published at <https://maps.nls.uk/projects/api/>
 
-Updates data and code files were uploaded on 2026-02-16. Changes are described below.  
+Updated data and code files were uploaded on 2026-02-16. Changes are described below.  
 
 ## Files
 
