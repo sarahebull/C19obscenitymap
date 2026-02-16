@@ -20,6 +20,8 @@ The majority of the addresses represented in this map are in central London, con
 
 The interface for the interactive map was built with Claude Code, using historic georeferenced map layers from the National Library of Scotland and advice for users published at <https://maps.nls.uk/projects/api/>
 
+Updates data and code files were uploaded on 2026-02-16. Changes are described below.  
+
 ## Files
 
 | File | Description |
@@ -46,6 +48,19 @@ The CSV contains 114 records with the following variables:
 
 Names in the `description` field correspond to the Seller_ID variable in _Periodical Advertising, 1822-1870_ and may be pseudonyms. In some cases, a note on the identity appears in square brackets. Year ranges indicate the span of years in which an address appeared in advertisements issued by the seller.
 
+A corrected version of this file was uploaded on 2026-02-16 with the following changes:
+
+- Name corrections: "Judge Family" (Carlton Road) → "Adolphus Henry Judge"; "Richard Groves" → "Joseph Groves"
+- Identifications added in square brackets: Anderson [William Lazenby?], Jackson and Co [Frederick Jackson], Emile Levine [William Frederick Howe and Elizabeth Graham?], Palmer [Henry Cook?], Lampert [Theophilus Sebastian Judge?], Cole [James Brewer?], Felix Danjer [William Dugdale?], J. Brooks and Co [Frederick Hunt], Thomas Ward [Thomas Paine Carlile], Weir [Alexander Weerden?]
+- Bracket style standardized from parentheses to square brackets throughout
+- Smith split into two entries: 1866 at 2 Vaughn-road and 1867 at 43 Vaughn-road (previously combined)
+- Felix Danjer address corrected to 37 1/2 Holywell-Street
+- Lampert address clarified to "2 Booksellers' Row [Holywell Street]"
+- "James [H. James, Esq]" simplified to "James" to match Seller_ID
+- Emile Levine entries consolidated/corrected with one now including both Paris and Wych-street addresses
+- 8 coordinate corrections (William Benbow, T.T.T, Mons Louise, Thomas Paine Carlile, William Ward, Edward Duncombe, Edward Dyer, Henry Reynolds)
+- 1 entry removed: duplicate Eugene Alfred Judge at "Potter's Bar, London, N." (the "Little Heath, Potter's Bar" entry remains)
+
 ## Interactive map: `C19_Obscenity_Map.html`
 
 The map is a single self-contained HTML file with all data embedded as JSON. It requires no server — open it locally in a browser or host it as a static file.
@@ -63,6 +78,11 @@ To embed the map on a website, host the HTML file and use an iframe:
 ```html
 <iframe src="C19_Obscenity_Map.html" width="100%" height="700" style="border:none;" loading="lazy"></iframe>
 ```
+An enhanced version of the map was uploaded on 2026-02-16 with the following features:
+
+- Seller Lookup: A searchable dropdown that lets users select one or more sellers by name. Selected sellers are highlighted with colour-coded markers (drawn from a 10-colour palette), while non-selected markers are dimmed. Each selected seller gets a removable tag, and a "Clear all" button resets the selection.
+- Connecting polylines: When a seller is selected, coloured lines connect their addresses in chronological order, tracing their movement across London over time.
+- Chronological address summary: A panel below the seller tags lists each selected seller's addresses in date order, showing year ranges and addresses.
 
 ### Dependencies (loaded from CDN)
 
