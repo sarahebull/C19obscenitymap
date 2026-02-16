@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapping Nineteenth-Century Obscenity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  :root { --rust: #B7472A; --ochre: #C8973E; --olive: #6B7F4E; --teal: #2D6D6D; --tan: #D4C5A9; --cream: #F5F0E8; --ink: #2C2418; --ink-light: #5C5142; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--ink); }
+  #map { width: 100%; height: 100vh; }
+  .control-panel { position: absolute; top: 16px; left: 60px; z-index: 1000; background: var(--cream); border: 1px solid var(--tan); border-radius: 3px; padding: 20px 24px; width: 360px; box-shadow: 0 2px 12px rgba(44,36,24,0.15); max-height: calc(100vh - 32px); overflow-y: auto; }
+  .control-panel h1 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; line-height: 1.3; margin-bottom: 16px; padding-right: 30px; }
+  .control-section { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--tan); }
+  .control-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .control-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-light); margin-bottom: 8px; display: block; }
+  .time-display { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: var(--rust); text-align: center; margin-bottom: 4px; letter-spacing: 1px; }
+  .time-range-label { font-size: 11px; color: var(--ink-light); text-align: center; margin-bottom: 10px; }
+  input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: var(--tan); border-radius: 3px; outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--rust); border-radius: 50%; cursor: pointer; border: 2px solid var(--cream); box-shadow: 0 1px 4px rgba(44,36,24,0.3); }
+  input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--rust); border-radius: 50%; cursor: pointer; border: 2px solid var(--cream); }
+  .window-control { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .window-control label { font-size: 12px; color: var(--ink-light); white-space: nowrap; }
+  select { padding: 4px 6px; font-size: 12px; font-family: 'Source Sans 3', sans-serif; border: 1px solid var(--tan); border-radius: 2px; background: white; color: var(--ink); cursor: pointer; }
+  .basemap-select { width: 100%; padding: 5px 6px; }
+  .play-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .play-btn { background: var(--teal); color: white; border: none; border-radius: 2px; padding: 5px 14px; font-family: 'Source Sans 3', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; cursor: pointer; }
+  .play-btn:hover { background: #245858; }
+  .count-display { font-size: 13px; color: var(--ink); text-align: center; padding: 6px 0; }
+  .count-display strong { font-weight: 600; color: var(--rust); }
+  .leaflet-popup-content-wrapper { border-radius: 3px; font-family: 'Source Sans 3', sans-serif; }
+  .leaflet-popup-content { margin: 12px 16px; font-size: 13px; line-height: 1.5; min-width: 200px; }
+  .popup-name { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .popup-year { font-size: 12px; font-weight: 600; color: var(--rust); margin-bottom: 4px; }
+  .popup-address { font-size: 12px; color: var(--ink-light); margin-bottom: 6px; }
+  .popup-source { font-size: 10px; color: var(--teal); letter-spacing: 0.3px; font-style: italic; }
+  .histogram { display: flex; align-items: flex-end; gap: 1px; height: 40px; margin-top: 6px; }
+  .hist-bar { flex: 1; background: var(--tan); border-radius: 1px 1px 0 0; transition: background 0.3s; cursor: pointer; min-width: 2px; }
+  .hist-bar.active { background: var(--rust); }
+  .hist-bar:hover { opacity: 0.8; }
+  .hist-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-light); margin-top: 2px; }
+  .collapse-btn { position: absolute; top: 8px; right: 8px; background: none; border: 1px solid var(--tan); border-radius: 2px; width: 24px; height: 24px; font-size: 14px; color: var(--ink-light); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .collapse-btn:hover { background: var(--tan); }
+  .control-panel.collapsed { width: auto; padding: 12px 16px; }
+  .control-panel.collapsed .panel-content { display: none; }
+  .control-panel.collapsed h1 { font-size: 14px; margin-bottom: 0; }
+  .marker-cluster div { font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 12px; }
+  .marker-cluster-small { background-color: rgba(183,71,42,0.25); }
+  .marker-cluster-small div { background-color: var(--rust); color: white; }
+  .marker-cluster-medium { background-color: rgba(183,71,42,0.3); }
+  .marker-cluster-medium div { background-color: var(--rust); color: white; }
+  .marker-cluster-large { background-color: rgba(183,71,42,0.35); }
+  .marker-cluster-large div { background-color: var(--rust); color: white; }
+  .map-legend { position: absolute; bottom: 28px; right: 12px; z-index: 1000; background: rgba(245,240,232,0.95); border: 1px solid var(--tan); border-radius: 3px; padding: 8px 12px; font-size: 11px; color: var(--ink-light); line-height: 1.7; }
+  .map-legend a { color: var(--teal); }
+  .nls-note { font-size: 10px; color: var(--ink-light); margin-top: 8px; line-height: 1.4; }
+  .nls-note a { color: var(--teal); }
+  #tileStatus { font-size: 10px; color: var(--rust); margin-top: 6px; min-height: 14px; }
+  .year-input-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .year-input-row label { font-size: 12px; color: var(--ink-light); white-space: nowrap; }
+  .year-input { width: 60px; padding: 4px 6px; font-size: 13px; font-family: 'Playfair Display', serif; font-weight: 700; color: var(--rust); border: 1px solid var(--tan); border-radius: 2px; background: white; text-align: center; }
+  .year-input:focus { outline: none; border-color: var(--rust); }
+  .year-go-btn { background: var(--teal); color: white; border: none; border-radius: 2px; padding: 4px 10px; font-family: 'Source Sans 3', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .year-go-btn:hover { background: #245858; }
+  /* Seller Lookup */
+  .seller-search-wrap { position: relative; }
+  .seller-search { width: 100%; padding: 6px 8px 6px 26px; font-size: 12px; font-family: 'Source Sans 3', sans-serif; border: 1px solid var(--tan); border-radius: 2px; background: white; color: var(--ink); }
+  .seller-search:focus { outline: none; border-color: var(--teal); }
+  .seller-search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--ink-light); pointer-events: none; }
+  .seller-dropdown { max-height: 160px; overflow-y: auto; border: 1px solid var(--tan); border-top: none; border-radius: 0 0 2px 2px; background: white; display: none; }
+  .seller-dropdown.open { display: block; }
+  .seller-option { padding: 4px 8px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+  .seller-option:hover { background: rgba(45,109,109,0.08); }
+  .seller-option .swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15); }
+  .seller-option.selected { background: rgba(45,109,109,0.12); font-weight: 600; }
+  .seller-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .seller-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 2px; font-size: 11px; font-weight: 600; color: white; cursor: default; }
+  .seller-tag .tag-x { cursor: pointer; font-size: 13px; opacity: 0.7; margin-left: 2px; }
+  .seller-tag .tag-x:hover { opacity: 1; }
+  .seller-clear-btn { background: none; border: 1px solid var(--tan); border-radius: 2px; padding: 3px 10px; font-family: 'Source Sans 3', sans-serif; font-size: 11px; color: var(--ink-light); cursor: pointer; margin-top: 6px; }
+  .seller-clear-btn:hover { background: var(--tan); color: var(--ink); }
+  .seller-summary { margin-top: 8px; font-size: 11px; line-height: 1.6; color: var(--ink); max-height: 140px; overflow-y: auto; }
+  .seller-summary-name { font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .seller-summary-entry { padding-left: 10px; border-left: 2px solid var(--tan); margin-bottom: 4px; }
+  .seller-summary-years { font-weight: 600; color: var(--rust); }
+  .seller-note { font-size: 10px; color: var(--ink-light); margin-top: 6px; line-height: 1.4; font-style: italic; }
+  @media (max-width: 700px) {
+    .control-panel { left: 8px; right: 8px; top: 8px; width: auto; padding: 14px 16px; }
+    .control-panel h1 { font-size: 15px; }
+    .time-display { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="control-panel" id="controlPanel">
+  <button class="collapse-btn" id="collapseBtn" title="Collapse panel">&minus;</button>
+  <h1>Mapping Nineteenth-Century Obscenity</h1>
+  <div class="panel-content">
+    <div class="control-section">
+      <span class="control-label">Time Period</span>
+      <div class="time-display" id="timeDisplay">1822 &ndash; 1870</div>
+      <div class="time-range-label" id="timeRangeLabel">Showing all records</div>
+      <input type="range" id="timeSlider" min="1820" max="1875" value="1820" step="1">
+      <div class="window-control">
+        <label for="windowSize">Window:</label>
+        <select id="windowSize">
+          <option value="0" selected>All years</option>
+          <option value="5">&plusmn;5 years</option>
+          <option value="10">&plusmn;10 years</option>
+          <option value="1">Single year</option>
+        </select>
+      </div>
+      <div class="year-input-row">
+        <label for="yearInput">Go to year:</label>
+        <input type="number" id="yearInput" class="year-input" min="1820" max="1875" placeholder="1850">
+        <button class="year-go-btn" id="yearGoBtn">Go</button>
+      </div>
+      <div class="histogram" id="histogram"></div>
+      <div class="hist-labels" id="histLabels"></div>
+      <div class="play-row"><button class="play-btn" id="playBtn">&#9654; Play</button></div>
+    </div>
+    <div class="control-section">
+      <span class="control-label">Visible</span>
+      <div class="count-display" id="countDisplay"><strong>114</strong> of 114 addresses shown</div>
+    </div>
+    <div class="control-section">
+      <span class="control-label">Seller Lookup</span>
+      <div class="seller-search-wrap">
+        <span class="seller-search-icon">&#9906;</span>
+        <input type="text" class="seller-search" id="sellerSearch" placeholder="Search for a seller&hellip;" autocomplete="off">
+      </div>
+      <div class="seller-dropdown" id="sellerDropdown"></div>
+      <div class="seller-tags" id="sellerTags"></div>
+      <div id="sellerActions"></div>
+      <div class="seller-summary" id="sellerSummary"></div>
+      <p class="seller-note" id="sellerNote" style="display:none;">Selected sellers are highlighted with coloured markers. Lines connect sequential addresses to show movement over time.</p>
+    </div>
+    <div class="control-section">
+      <span class="control-label">Base Map</span>
+      <select id="basemapSelect" class="basemap-select">
+        <optgroup label="Modern">
+          <option value="osmBW">OpenStreetMap (greyscale)</option>
+          <option value="osm">OpenStreetMap (colour)</option>
+        </optgroup>
+        <optgroup label="NLS Historical &mdash; London">
+          <option value="os6inch" selected>OS Six-Inch County, 1830s&ndash;1880s</option>
+          <option value="london1850s">OS London 1:5280, 1848&ndash;51</option>
+          <option value="london1870s">OS London 1:1250, 1862&ndash;74</option>
+          <option value="london1890s">OS London 1:2500, 1893&ndash;96</option>
+        </optgroup>
+      </select>
+      <div id="tileStatus"></div>
+      <p class="nls-note">
+        Historic georeferenced map layers from the
+        <a href="https://maps.nls.uk/" target="_blank">National Library of Scotland</a>.
+        The Six-Inch County layer combines Middlesex, Surrey, and Kent for London coverage.
+        For locations outside London, switch to a modern base map.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="map-legend">Historic maps &copy; <a href="https://maps.nls.uk/" target="_blank">NLS</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank">CC-BY 3.0 Unported</a></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+var DATA = [{"name": "William Benbow", "years": [1825], "year": 1825, "address": "252 High Holborn", "lat": 51.5176580459675, "lon": -0.117950041, "description": "William Benbow, 1825, 252 High Holborn"}, {"name": "Louis Dubois", "years": [1861], "year": 1861, "address": "9 Dyer's Buildings, Holborn Bars, E.C., removed from 25, Bedford Row", "lat": 51.5175451734829, "lon": -0.11014337, "description": "Louis Dubois, 1861, 9 Dyer's Buildings, Holborn Bars, E.C., removed from 25, Bedford Row"}, {"name": "Weir", "years": [1864, 1865], "year": 1864, "address": "23 Featherstone-buildings, Holborn, London, W.C.", "lat": 51.5184990320354, "lon": -0.11610426900000001, "description": "Weir, 1864-1865, 23 Featherstone-buildings, Holborn, London, W.C."}, {"name": "T.T.T", "years": [1861], "year": 1861, "address": "66, Cheapside, E.C.", "lat": 51.51371105, "lon": -0.092747857, "description": "T.T.T, 1861, 66, Cheapside, E.C."}, {"name": "Edward Duncombe", "years": [1828], "year": 1828, "address": "28 Fleet-market", "lat": 51.5231719307689, "lon": -0.1077881, "description": "Edward Duncombe, 1828, 28 Fleet-market"}, {"name": "Louis Dubois", "years": [1861, 1862], "year": 1861, "address": "25 Bedford Row, London, W.C.", "lat": 51.520379553847505, "lon": -0.116685782, "description": "Louis Dubois, 1861-1862, 25 Bedford Row, London, W.C."}, {"name": "Paul de Paris", "years": [1857, 1863, 1864, 1866], "year": 1857, "address": "2 Holywell Street, Strand, London", "lat": 51.512982756055, "lon": -0.11492336700000001, "description": "Paul de Paris, 1857, 1863-1864, 1866, 2 Holywell Street, Strand, London"}, {"name": "Theophilus Sebastian Judge", "years": [1868, 1869], "year": 1868, "address": "2, Holywell-street, Strand, London", "lat": 51.5130015957345, "lon": -0.114909987, "description": "Theophilus Sebastian Judge, 1868-1869,  2, Holywell-street, Strand, London"}, {"name": "Thomas Paine Carlile", "years": [1848], "year": 1848, "address": "252 Strand (from 103)", "lat": 51.513450984392, "lon": -0.11336631700000001, "description": "Thomas Paine Carlile, 1848, 252 Strand (from 103)"}, {"name": "Mons Louise", "years": [1846], "year": 1846, "address": "18, Arundel-street, Strand", "lat": 51.5121909557205, "lon": -0.11412878500000001, "description": "Mons Louise, 1846, 18, Arundel-street, Strand"}, {"name": "Croker and Co", "years": [1844, 1845], "year": 1844, "address": "199 Strand, corner of Milford-lane", "lat": 51.5127883161314, "lon": -0.113561164, "description": "Croker and Co, 1844-1845, 199 Strand, corner of Milford-lane"}, {"name": "Emile Levine [William Frederick Howe and Elizabeth Graham?]", "years": [1857], "year": 1857, "address": "31, Rue de Colisses [sic], Paris and 195, Waterloo Bridge-road, London, England", "lat": 51.5006984268929, "lon": -0.10779976200000001, "description": "Emile Levine [William Frederick Howe and Elizabeth Graham?], 1857, 31, Rue de Colisses [sic], Paris and 195, Waterloo Bridge-road, London, England"}, {"name": "Edward Duncombe", "years": [1851, 1852, 1853, 1854], "year": 1851, "address": "7 West-street, Upper St. Martin's-lane", "lat": 51.513328469954004, "lon": -0.128699414, "description": "Edward Duncombe, 1851-1854, 7 West-street, Upper St. Martin's-lane"}, {"name": "Edward Duncombe", "years": [1854, 1855, 1856, 1857, 1858, 1859, 1860, 1861, 1862, 1863, 1864, 1865, 1866], "year": 1854, "address": "28, Little St. Andrew-street, Upper St. Martin's-Lane", "lat": 51.5135422031736, "lon": -0.127239034, "description": "Edward Duncombe, 1854-1866, 28, Little St. Andrew-street, Upper St. Martin's-Lane"}, {"name": "Edward Duncombe", "years": [1838, 1839, 1840, 1841, 1842, 1843], "year": 1838, "address": "78, Long-acre, Drury-lane", "lat": 51.5144619414546, "lon": -0.12240625000000001, "description": "Edward Duncombe, 1838-1843, 78, Long-acre, Drury-lane"}, {"name": "Novello and Co", "years": [1843], "year": 1843, "address": "78 Long Acre", "lat": 51.5144637824718, "lon": -0.122398934, "description": "Novello and Co, 1843, 78 Long Acre"}, {"name": "Jackson and Co", "years": [1844], "year": 1844, "address": "78, Long Acre", "lat": 51.5144694728881, "lon": -0.122401194, "description": "Jackson and Co, 1844, 78, Long Acre"}, {"name": "Edward Duncombe", "years": [1837, 1838], "year": 1837, "address": "180, High Holborn", "lat": 51.515754676980904, "lon": -0.125339886, "description": "Edward Duncombe, 1837-1838, 180, High Holborn"}, {"name": "Anderson", "years": [1865, 1866, 1867, 1868, 1869, 1870], "year": 1865, "address": "32 Bidborough Street, London, W.C.", "lat": 51.5286260594468, "lon": -0.126010215, "description": "Anderson, 1865-1870, 32 Bidborough Street, London, W.C."}, {"name": "Henry May", "years": [1854, 1856], "year": 1854, "address": "17, Holywell-street, Strand", "lat": 51.512527088450504, "lon": -0.116164789, "description": "Henry May, 1854, 1856, 17, Holywell-street, Strand"}, {"name": "William John Dugdale", "years": [1849, 1850], "year": 1849, "address": "35 Holywell Street, Strand", "lat": 51.512556702254, "lon": -0.11611921200000001, "description": "William John Dugdale, 1849-1850, 35 Holywell Street, Strand"}, {"name": "William Dugdale", "years": [1839, 1840, 1841, 1842, 1843, 1844, 1845, 1846, 1847, 1848, 1849, 1850, 1851, 1852, 1853], "year": 1839, "address": "37 Holywell-Street, Strand", "lat": 51.5125739525945, "lon": -0.11610255400000001, "description": "William Dugdale, 1839-1853, 37 Holywell-Street, Strand"}, {"name": "Felix Danjer [William Dugdale?]", "years": [1854], "year": 1854, "address": "37 1/2 Holywell-Street, Strand", "lat": 51.512574489680404, "lon": -0.116095866, "description": "Felix Danjer [William Dugdale?], 1854, 37 1/2 Holywell-Street, Strand"}, {"name": "William Dugdale", "years": [1863], "year": 1863, "address": "37 Holywell-Street, Strand", "lat": 51.5125801674454, "lon": -0.11608501700000001, "description": "William Dugdale, 1863, 37 Holywell-Street, Strand"}, {"name": "George Jones", "years": [1865], "year": 1865, "address": "34 Holywell Street Strand W.C.", "lat": 51.5126187792143, "lon": -0.11598659300000001, "description": "George Jones, 1865, 34 Holywell Street Strand W.C."}, {"name": "Joseph Groves", "years": [1864, 1865, 1866, 1867, 1868, 1869], "year": 1864, "address": "33 Holywell Street, Strand", "lat": 51.512641348917, "lon": -0.11594083000000001, "description": "Joseph Groves, 1864-1869, 33 Holywell Street, Strand"}, {"name": "Michael Saunders", "years": [1866], "year": 1866, "address": "49 Wych-street, Strand, W.C.", "lat": 51.5130638373414, "lon": -0.115558955, "description": "Michael Saunders, 1866, 49 Wych-street, Strand, W.C."}, {"name": "John Higdon Thornhill", "years": [1856, 1857], "year": 1856, "address": "53 Holywell Street, Strand, London", "lat": 51.5128475133889, "lon": -0.115304531, "description": "John Higdon Thornhill, 1856-1857, 53 Holywell Street, Strand, London"}, {"name": "John Lambert Dugdale", "years": [1856, 1857], "year": 1856, "address": "50 Holywell Street, Strand", "lat": 51.5128929493438, "lon": -0.115199771, "description": "John Lambert Dugdale, 1856-1857, 50 Holywell Street, Strand"}, {"name": "William Dugdale", "years": [1857], "year": 1857, "address": "5 Holywell Street, Strand", "lat": 51.5129454973907, "lon": -0.11501839600000001, "description": "William Dugdale, 1857, 5 Holywell Street, Strand"}, {"name": "Richard Martin", "years": [1856, 1857], "year": 1856, "address": "183 Fleet Street", "lat": 51.5141712011989, "lon": -0.10992067900000001, "description": "Richard Martin, 1856-1857, 183 Fleet Street"}, {"name": "William Edwards", "years": [1842, 1843, 1844, 1845, 1846, 1847, 1848, 1849, 1850, 1851], "year": 1842, "address": "183 Fleet-Street", "lat": 51.514150486530404, "lon": -0.110012439, "description": "William Edwards, 1842-1851, 183 Fleet-Street"}, {"name": "William Ward", "years": [1855, 1856, 1857, 1858, 1859], "year": 1855, "address": "113, Fleet-street, near Ludgate-hill", "lat": 51.5142570117464, "lon": -0.10496293200000001, "description": "William Ward, 1855-1859, 113, Fleet-street, near Ludgate-hill"}, {"name": "Edward Duncombe", "years": [1826, 1827], "year": 1826, "address": "188 Fleet Street", "lat": 51.514375829497105, "lon": -0.105600462, "description": "Edward Duncombe, 1826-1827, 188 Fleet Street"}, {"name": "Edward Duncombe", "years": [1826], "year": 1826, "address": "165 Fleet Street", "lat": 51.5143906743436, "lon": -0.10778666, "description": "Edward Duncombe, 1826, 165 Fleet Street"}, {"name": "William Ward", "years": [1849, 1850, 1851], "year": 1849, "address": "67 Strand, nearly facing the Adelphi Theatre", "lat": 51.5096808467292, "lon": -0.123851679, "description": "William Ward, 1849-1851, 67 Strand, nearly facing the Adelphi Theatre"}, {"name": "Thomas Ward [Thomas Paine Carlile] and Frederick Glover", "years": [1845], "year": 1845, "address": "103, Strand", "lat": 51.5105980562406, "lon": -0.120644209, "description": "Thomas Ward [Thomas Paine Carlile] and Frederick Glover, 1845, 103, Strand"}, {"name": "Thomas Paine Carlile", "years": [1843, 1844, 1845, 1846, 1847, 1848], "year": 1843, "address": "103, Strand", "lat": 51.510607446198705, "lon": -0.12070305, "description": "Thomas Paine Carlile, 1843-1848, 103, Strand"}, {"name": "Thomas Paine Carlile", "years": [1849], "year": 1849, "address": "2, St. Martin's-Court, St. Martin's Lane", "lat": 51.5109144344071, "lon": -0.127602726, "description": "Thomas Paine Carlile, 1849, 2, St. Martin's-Court, St. Martin's Lane"}, {"name": "Judge Family", "years": [1870], "year": 1870, "address": "6 Exeter-street, Strand, London", "lat": 51.511197318528104, "lon": -0.121616861, "description": "Judge Family, 1870, 6 Exeter-street, Strand, London"}, {"name": "George Cannon", "years": [1829], "year": 1829, "address": "16, Ryder's Court, Leicester Square", "lat": 51.5113222212709, "lon": -0.127856507, "description": "George Cannon, 1829, 16, Ryder's Court, Leicester Square"}, {"name": "Frederick Glover", "years": [1846, 1847], "year": 1846, "address": "22, St. Martin's-court, Leicester-square", "lat": 51.5111224200161, "lon": -0.127859319, "description": "Frederick Glover, 1846-1847, 22, St. Martin's-court, Leicester-square"}, {"name": "George Cannon", "years": [1848], "year": 1848, "address": "11, May's-buildings, Saint Martin's-lane", "lat": 51.510284876472404, "lon": -0.126661738, "description": "George Cannon, 1848, 11, May's-buildings, Saint Martin's-lane"}, {"name": "Emile Levine", "years": [1857], "year": 1857, "address": "1857 [William Frederick Howe and Elizabeth Graham?], 31 Rue de Colissees, Paris and 62, Wych-street, Strand", "lat": 51.512933430000004, "lon": -0.116357504, "description": "Emile Levine, 1857 [William Frederick Howe and Elizabeth Graham?], 31 Rue de Colissees, Paris and 62, Wych-street, Strand"}, {"name": "William Dugdale", "years": [1852, 1854, 1855, 1856], "year": 1852, "address": "16 Holywell Street", "lat": 51.5124999475774, "lon": -0.116285461, "description": "William Dugdale, 1852, 1854, 1855-1856, 16 Holywell Street"}, {"name": "H.G. Brooks", "years": [1856], "year": 1856, "address": "17 1/2 Holywell Street, Strand, London", "lat": 51.5125091333205, "lon": -0.11619773800000001, "description": "H.G. Brooks, 1856, 17 1/2 Holywell Street, Strand, London"}, {"name": "William Dugdale", "years": [1863, 1864, 1865, 1866, 1867, 1868], "year": 1863, "address": "44 Wych-street, Strand, London, W.C.", "lat": 51.512959830495504, "lon": -0.11618861600000001, "description": "William Dugdale, 1863-1868, 44 Wych-street, Strand, London, W.C."}, {"name": "Theophilus Sebastian Judge", "years": [1869], "year": 1869, "address": "44 Wych-street, Strand, London.", "lat": 51.5129584018104, "lon": -0.116265061, "description": "Theophilus Sebastian Judge, 1869, 44 Wych-street, Strand, London."}, {"name": "Judge Family [Jessie Judge?]", "years": [1869, 1870], "year": 1869, "address": "44 Wych-street, Strand, London.", "lat": 51.5129503526447, "lon": -0.11625781, "description": "Judge Family [Jessie Judge?], 1869-1870, 44 Wych-street, Strand, London."}, {"name": "Edward Duncombe", "years": [1843, 1844], "year": 1843, "address": "338 Oxford Street", "lat": 51.5147292077364, "lon": -0.147687762, "description": "Edward Duncombe, 1843-1844, 338 Oxford Street"}, {"name": "Jackson and Co [Frederick Jackson]", "years": [1841, 1842, 1843, 1844], "year": 1841, "address": "130 New Bond Street", "lat": 51.511893105298505, "lon": -0.144479044, "description": "Jackson and Co [Frederick Jackson], 1841-1844, 130 New Bond Street"}, {"name": "John Benjamin Brookes", "years": [1839], "year": 1839, "address": "9, New Bond Street", "lat": 51.510063463946004, "lon": -0.14188626000000001, "description": "John Benjamin Brookes, 1839, 9, New Bond Street"}, {"name": "John Benjamin Brookes", "years": [1828], "year": 1828, "address": "4, Royal Arcade, Pall Mall", "lat": 51.507919283789704, "lon": -0.131967462, "description": "John Benjamin Brookes, 1828, 4, Royal Arcade, Pall Mall"}, {"name": "Frederick Glover", "years": [1844, 1845], "year": 1844, "address": "47, Haymarket", "lat": 51.5100245253462, "lon": -0.13295516500000001, "description": "Frederick Glover, 1844-1845, 47, Haymarket"}, {"name": "Edward Duncombe", "years": [1845, 1846], "year": 1845, "address": "86 Wardour-street, Oxford-street", "lat": 51.513352105836304, "lon": -0.13376417200000001, "description": "Edward Duncombe, 1845-1846, 86 Wardour-street, Oxford-street"}, {"name": "William Ward", "years": [1855], "year": 1855, "address": "48 1/2 Haymarket", "lat": 51.50947334, "lon": -0.133148296, "description": "William Ward, 1855, 48 1/2 Haymarket"}, {"name": "Edward Dyer", "years": [1847, 1848, 1849, 1850, 1851, 1852, 1853, 1854, 1855, 1856, 1857, 1858, 1859, 1860, 1861, 1862, 1863, 1864, 1865], "year": 1847, "address": "24 Princes-street, Soho", "lat": 51.5112922225022, "lon": -0.132083321, "description": "Edward Dyer, 1847-1865, 24 Princes-street, Soho"}, {"name": "Adolphus Henry Judge", "years": [1859, 1860, 1861, 1862, 1863, 1864, 1865], "year": 1859, "address": "50 Carlton Road, Kentish Town, London, N.W.", "lat": 51.5498954338217, "lon": -0.149156978, "description": "Adolphus Henry Judge, 1859-1865, 50 Carlton Road, Kentish Town, London, N.W."}, {"name": "Thomas Paine Carlile", "years": [1850], "year": 1850, "address": "38 Arundel Street, Strand", "lat": 51.5115108403108, "lon": -0.113510357, "description": "Thomas Paine Carlile, 1850, 38 Arundel Street, Strand"}, {"name": "Edward Duncombe", "years": [1828, 1829, 1830, 1831, 1832, 1833, 1834, 1835], "year": 1828, "address": "18 Middle Row, Holborn", "lat": 51.5181226612981, "lon": -0.11184337100000001, "description": "Edward Duncombe, 1828-1835, 18 Middle Row, Holborn"}, {"name": "John Duncombe", "years": [1836, 1837, 1838, 1839, 1840, 1841, 1842, 1843, 1849], "year": 1836, "address": "10, Middle Row, Holborn", "lat": 51.518088815222605, "lon": -0.11159834, "description": "John Duncombe, 1836-1843, 1849, 10, Middle Row, Holborn"}, {"name": "Edward Duncombe", "years": [1850], "year": 1850, "address": "17, Holborn, opposite Furnival's-inn", "lat": 51.518518273819204, "lon": -0.10893073800000001, "description": "Edward Duncombe, 1850, 17, Holborn, opposite Furnival's-inn"}, {"name": "\"Beta", "years": [1853, 1854], "year": 1853, "address": "\" 1853-1854, 8, Tudor-street, City", "lat": 51.5126309, "lon": -0.10560237400000001, "description": "\"Beta,\" 1853-1854, 8, Tudor-street, City"}, {"name": "Edward Duncombe", "years": [1837], "year": 1837, "address": "18, Skinner-street, Snowhill, London", "lat": 51.5169814696147, "lon": -0.104062215, "description": "Edward Duncombe, 1837, 18, Skinner-street, Snowhill, London"}, {"name": "John Duncombe", "years": [1823, 1824, 1825, 1826, 1827, 1828, 1829, 1830, 1831, 1832, 1833, 1834, 1835], "year": 1823, "address": "19, Little Queen-street, Holborn", "lat": 51.5169948948037, "lon": -0.120280486, "description": "John Duncombe, 1823-1835, 19, Little Queen-street, Holborn"}, {"name": "Edward Duncombe", "years": [1836], "year": 1836, "address": "26, Chichester-place, Gray's Inn-road", "lat": 51.5288339719808, "lon": -0.12024900300000001, "description": "Edward Duncombe, 1836, 26, Chichester-place, Gray's Inn-road"}, {"name": "Thomas Paine Carlile", "years": [1849], "year": 1849, "address": "No. 1 A Catherine-street, Strand", "lat": 51.5120833810836, "lon": -0.11954887200000001, "description": "Thomas Paine Carlile, 1849, No. 1 A Catherine-street, Strand"}, {"name": "John Higdon Thornhill", "years": [1866], "year": 1866, "address": "22, Newcastle-street, Strand, W.C.", "lat": 51.5127211812634, "lon": -0.11689916400000001, "description": "John Higdon Thornhill, 1866, 22, Newcastle-street, Strand, W.C."}, {"name": "William Benbow", "years": [1822, 1823], "year": 1822, "address": "9, Castle-street, Leicester-square", "lat": 51.5107784904542, "lon": -0.128632528, "description": "William Benbow, 1822-1823, 9, Castle-street, Leicester-square"}, {"name": "J. Brooks and Co [Frederick Hunt]", "years": [1849], "year": 1849, "address": "66, Castle-street, Leicester-square", "lat": 51.509883485988, "lon": -0.128438466, "description": "J. Brooks and Co [Frederick Hunt], 1849, 66, Castle-street, Leicester-square"}, {"name": "James Brewer", "years": [1863, 1864], "year": 1863, "address": "30 Castle Street, Leicester Square, London, W.C.", "lat": 51.510344342514, "lon": -0.128431499, "description": "James Brewer, 1863-1864, 30 Castle Street, Leicester Square, London, W.C."}, {"name": "Cole [James Brewer?]", "years": [1867], "year": 1867, "address": "30 Castle Street, Leicester Square, London", "lat": 51.5103456990899, "lon": -0.12842661700000002, "description": "Cole [James Brewer?], 1867, 30 Castle Street, Leicester Square, London"}, {"name": "Williams and Co", "years": [1845], "year": 1845, "address": "1, Bridge-court, Bridge-street Westminster", "lat": 51.5012926074756, "lon": -0.125395575, "description": "Williams and Co, 1845, 1, Bridge-court, Bridge-street Westminster"}, {"name": "A. Cooper", "years": [1853, 1854], "year": 1853, "address": "4, Oval-road, Kennington", "lat": 51.4826769543506, "lon": -0.114445741, "description": "A. Cooper, 1853-1854, 4, Oval-road, Kennington"}, {"name": "William Ward", "years": [1869, 1870], "year": 1869, "address": "36, Fleet-lane, E.C.", "lat": 51.5145856726729, "lon": -0.10973848800000001, "description": "William Ward, 1869-1870, 36, Fleet-lane, E.C."}, {"name": "Thomas Martin", "years": [1856], "year": 1856, "address": "14, Fetter-lane, London", "lat": 51.5146217144826, "lon": -0.10973158300000001, "description": "Thomas Martin, 1856, 14, Fetter-lane, London"}, {"name": "\"Stereo", "years": [1857], "year": 1857, "address": "\" 1857, 7, Tudor-street, Blackfriars, E.C.", "lat": 51.5126373253128, "lon": -0.105746061, "description": "\"Stereo,\" 1857, 7, Tudor-street, Blackfriars, E.C."}, {"name": "William Ward", "years": [1864, 1865], "year": 1864, "address": "3, Hatfield-street, Goswell-street, London, E.C. (late of Kennington)", "lat": 51.5225474114171, "lon": -0.09611037400000001, "description": "William Ward, 1864-1865, 3, Hatfield-street, Goswell-street, London, E.C. (late of Kennington)"}, {"name": "Harry Jones", "years": [1861], "year": 1861, "address": "2B, Nelson Place, Old Kent Road, London, S.E.", "lat": 51.4868376396901, "lon": -0.074684102, "description": "Harry Jones, 1861, 2B, Nelson Place, Old Kent Road, London, S.E."}, {"name": "William Ward", "years": [1859, 1860], "year": 1859, "address": "19, York-row, Kennington-road, London, S", "lat": 51.490119626726504, "lon": -0.104470458, "description": "William Ward, 1859-1860, 19, York-row, Kennington-road, London, S"}, {"name": "William Ward", "years": [1861, 1864], "year": 1861, "address": "5 Triangle, Kennington Cross, 8", "lat": 51.49119278, "lon": -0.10342026600000001, "description": "William Ward, 1861 - 1864, 5 Triangle, Kennington Cross, 8"}, {"name": "Box U [no name provided]", "years": [1864], "year": 1864, "address": "Box U, Central News Rooms, 151, Cheapside, E.C.", "lat": 51.5145717097559, "lon": -0.0964245, "description": "Box U [no name provided], 1864, Box U, Central News Rooms, 151, Cheapside, E.C."}, {"name": "Henry Reynolds", "years": [1848], "year": 1848, "address": "38, Princes-street, Soho", "lat": 51.5107899689065, "lon": -0.131787859, "description": "Henry Reynolds, 1848, 38, Princes-street, Soho"}, {"name": "Edward Duncombe", "years": [1847, 1848, 1849], "year": 1847, "address": "25 King-street, Covent Garden", "lat": 51.511596607998, "lon": -0.12447893400000001, "description": "Edward Duncombe, 1847-1849, 25 King-street, Covent Garden"}, {"name": "William Ward", "years": [1852], "year": 1852, "address": "16 Bridges-street, Covent Garden", "lat": 51.5125452857273, "lon": -0.120120446, "description": "William Ward, 1852, 16 Bridges-street, Covent Garden"}, {"name": "Lowe", "years": [1864], "year": 1864, "address": "Strand Museum, London", "lat": 51.511375296878605, "lon": -0.116500696, "description": "Lowe, 1864, Strand Museum, London"}, {"name": "Eugene Alfred Judge", "years": [1865, 1866, 1867, 1868, 1869, 1870], "year": 1865, "address": "Little Heath, Potter's Bar, London N.", "lat": 51.7057624224024, "lon": -0.178436816, "description": "Eugene Alfred Judge, 1865-1870, Little Heath, Potter's Bar, London N."}, {"name": "James", "years": [1866], "year": 1866, "address": "Percy House, Bedford Square, London", "lat": 51.5187318419837, "lon": -0.129594917, "description": "James, 1866, Percy House, Bedford Square, London"}, {"name": "Anderson [William Lazenby?]", "years": [1864], "year": 1864, "address": "Acton Cottage, Acton-street, W.C.", "lat": 51.528535975835105, "lon": -0.11842164200000001, "description": "Anderson [William Lazenby?], 1864, Acton Cottage, Acton-street, W.C."}, {"name": "John Harrison", "years": [1867, 1868, 1869], "year": 1867, "address": "41 Kenton-street, Brunswick-square, W.C.", "lat": 51.525654100779605, "lon": -0.12472151100000001, "description": "John Harrison, 1867-1869, 41 Kenton-street, Brunswick-square, W.C."}, {"name": "Johnson", "years": [1865, 1866], "year": 1865, "address": "Church-road, Hackney, London", "lat": 51.5615707120564, "lon": -0.081355366, "description": "Johnson, 1865-1866, Church-road, Hackney, London"}, {"name": "William Powell", "years": [1868], "year": 1868, "address": "31 Bournemouth road, Peckam, S", "lat": 51.4692527439777, "lon": -0.067359104, "description": "William Powell, 1868, 31 Bournemouth road, Peckam, S"}, {"name": "Chapman", "years": [1868], "year": 1868, "address": "Post Office, Ramgate", "lat": 51.3343753118449, "lon": 1.41829208535956, "description": "Chapman, 1868, Post Office, Ramgate"}, {"name": "Harry Jones", "years": [1861], "year": 1861, "address": "37 William-street, Hampstead-road, London, N.W.", "lat": 51.5270795827791, "lon": -0.14178079300000002, "description": "Harry Jones, 1861, 37 William-street, Hampstead-road, London, N.W."}, {"name": "Weir [Alexander Weerden?]", "years": [1864], "year": 1864, "address": "10a, Charles-street, Middlesex Hospital, London, W.", "lat": 51.5186615947123, "lon": -0.137899514, "description": "Weir [Alexander Weerden?], 1864, 10a, Charles-street, Middlesex Hospital, London, W."}, {"name": "Edward Duncombe", "years": [1866], "year": 1866, "address": "9 West-street, Upper S. Martin's-lane", "lat": 51.5130231083182, "lon": -0.12838436, "description": "Edward Duncombe, 1866, 9 West-street, Upper S. Martin's-lane"}, {"name": "Edward Duncombe", "years": [1867], "year": 1867, "address": "18, Little St. Andrew's Street, St. Martin's Lane", "lat": 51.5135486957265, "lon": -0.12717677400000002, "description": "Edward Duncombe, 1867, 18, Little St. Andrew's Street, St. Martin's Lane"}, {"name": "William Sandyfirth Grayson", "years": [1867, 1868, 1869], "year": 1867, "address": "9 Stanhope-street, Strand, W.C.", "lat": 51.514204072428804, "lon": -0.11886681600000001, "description": "William Sandyfirth Grayson, 1867-1869, 9 Stanhope-street, Strand, W.C."}, {"name": "Sidney", "years": [1868], "year": 1868, "address": "3, Mount Pleasant, Clerkenwell, W.C.", "lat": 51.523375619572604, "lon": -0.112255165, "description": "Sidney, 1868, 3, Mount Pleasant, Clerkenwell, W.C."}, {"name": "Armstrong", "years": [1868], "year": 1868, "address": "11, Samford-street [Blandford Street?], Portman Market, Marylebone, N.W.", "lat": 51.518275817035104, "lon": -0.15480942, "description": "Armstrong, 1868, 11, Samford-street [Blandford Street?], Portman Market, Marylebone, N.W."}, {"name": "Samuel Wilson", "years": [1863], "year": 1863, "address": "North Villa, Alford, Lincoln", "lat": 53.2638754637163, "lon": 0.17834542206846102, "description": "Samuel Wilson, 1863, North Villa, Alford, Lincoln"}, {"name": "Cruden", "years": [1865, 1866, 1869, 1870], "year": 1865, "address": "Tinsley, Rotherham", "lat": 53.3925029732897, "lon": -1.395651886, "description": "Cruden, 1865-1866, 1869-1870, Tinsley, Rotherham"}, {"name": "William Gilliam", "years": [1870], "year": 1870, "address": "Attercliffe, Sheffield", "lat": 53.3984851188997, "lon": -1.426996135, "description": "William Gilliam, 1870, Attercliffe, Sheffield"}, {"name": "Benjamin Smith", "years": [1870], "year": 1870, "address": "6, Oil Mill Folds, Rotherham", "lat": 53.4280935920095, "lon": -1.357121213, "description": "Benjamin Smith, 1870, 6, Oil Mill Folds, Rotherham"}, {"name": "Palmer [Henry Cook?]", "years": [1870], "year": 1870, "address": "14 Merchant-street, Bristol", "lat": 51.4572268810635, "lon": -2.588288432, "description": "Palmer [Henry Cook?], 1870, 14 Merchant-street, Bristol"}, {"name": "Henry Cook", "years": [1870], "year": 1870, "address": "9 Rosemary Street, Bristol", "lat": 51.457828797948004, "lon": -2.588610359, "description": "Henry Cook, 1870, 9 Rosemary Street, Bristol"}, {"name": "Peterson", "years": [1869, 1870], "year": 1869, "address": "25 James-street, Stockwell, London [both N and S specified in advertisements]", "lat": 51.476025441032704, "lon": -0.104159736, "description": "Peterson, 1869-1870, 25 James-street, Stockwell, London [both N and S specified in advertisements]"}, {"name": "G. Ward", "years": [1864, 1865], "year": 1864, "address": "57 London-road, S.", "lat": 51.496785433489904, "lon": -0.10270683200000001, "description": "G. Ward, 1864-1865, 57 London-road, S."}, {"name": "Smith", "years": [1866], "year": 1866, "address": "2, Vaughn-road, Cold Harbour-lane, Brixton, London", "lat": 51.4669235077625, "lon": -0.09839855, "description": "Smith, 1866, 2, Vaughn-road, Cold Harbour-lane, Brixton, London"}, {"name": "Herbert Constantine Judge", "years": [1870], "year": 1870, "address": "1 Lucas-place, Wandsworth-road, S", "lat": 51.4737458561464, "lon": -0.15181745700000002, "description": "Herbert Constantine Judge, 1870, 1 Lucas-place, Wandsworth-road, S"}, {"name": "Denman", "years": [1869], "year": 1869, "address": "5 Union-buildings, near Holborn, London, E.C.", "lat": 51.5169177919011, "lon": -0.102064372, "description": "Denman, 1869, 5 Union-buildings, near Holborn, London, E.C."}, {"name": "Henry Cook", "years": [1866], "year": 1866, "address": "Bristol", "lat": 51.453086879027005, "lon": -2.600815326, "description": "Henry Cook, 1866, Bristol"}, {"name": "Lampert [Theophilus Sebastian Judge?]", "years": [1866, 1867, 1868, 1869], "year": 1866, "address": "2 Booksellers' Row [Holywell Street], Strand, London", "lat": 51.5129520347118, "lon": -0.11489252300000001, "description": "Lampert [Theophilus Sebastian Judge?], 1866-1869, 2 Booksellers' Row [Holywell Street], Strand, London"}, {"name": "Smith", "years": [1867], "year": 1867, "address": "43 Vaughn-road, Cold Harbour-le., Brixton, S.", "lat": 51.4675757055056, "lon": -0.0986761451237837, "description": "Smith, 1867, 43 Vaughn-road, Cold Harbour-le., Brixton, S."}];
+
+function formatYears(years) {
+  if (!years || years.length === 0) return 'Unknown';
+  if (years.length === 1) return '' + years[0];
+  var sorted = years.slice().sort(function(a, b) { return a - b; });
+  var ranges = [], start = sorted[0], prev = sorted[0];
+  for (var i = 1; i < sorted.length; i++) {
+    if (sorted[i] === prev + 1) { prev = sorted[i]; }
+    else { ranges.push(start === prev ? '' + start : start + '\u2013' + prev); start = sorted[i]; prev = sorted[i]; }
+  }
+  ranges.push(start === prev ? '' + start : start + '\u2013' + prev);
+  return ranges.join(', ');
+}
+
+var map = L.map('map', { center: [51.513, -0.118], zoom: 15, minZoom: 5, maxZoom: 20 });
+
+var nlsAttr = 'Historic georeferenced map layers &copy; <a href="https://maps.nls.uk/">NLS</a>, <a href="https://creativecommons.org/licenses/by/3.0/">CC-BY 3.0 Unported</a>';
+
+var modernFallback = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20, subdomains: 'abcd',
+  attribution: '&copy; <a href="https://openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+});
+
+var baseLayers = {
+  osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
+  }),
+  osmBW: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, subdomains: 'abcd',
+    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+  }),
+  os6inch: L.layerGroup([
+    L.tileLayer('https://mapseries-tilesets.s3.amazonaws.com/os/six-inch-middlesex/{z}/{x}/{y}.png', {
+      maxZoom: 17, attribution: nlsAttr
+    }),
+    L.tileLayer('https://mapseries-tilesets.s3.amazonaws.com/os/six-inch-surrey/{z}/{x}/{y}.png', {
+      maxZoom: 17, attribution: nlsAttr
+    }),
+    L.tileLayer('https://mapseries-tilesets.s3.amazonaws.com/os/six-inch-kent/{z}/{x}/{y}.png', {
+      maxZoom: 17, attribution: nlsAttr
+    })
+  ]),
+  london1850s: L.tileLayer('https://mapseries-tilesets.s3.amazonaws.com/os/town-england/London-5280/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: nlsAttr
+  }),
+  london1870s: L.tileLayer('https://mapseries-tilesets.s3.amazonaws.com/os/town-england/London-1870s/{z}/{x}/{y}.png', {
+    maxZoom: 20, attribution: nlsAttr
+  }),
+  london1890s: L.tileLayer('https://mapseries-tilesets.s3.amazonaws.com/london_1890s/{z}/{x}/{y}.png', {
+    maxZoom: 20, attribution: nlsAttr
+  })
+};
+
+var historicalKeys = ['os6inch', 'london1850s', 'london1870s', 'london1890s'];
+var useFallback = true;
+
+var tileStatus = document.getElementById('tileStatus');
+var tileOkCount = {};
+function monitorLayer(key, layer) {
+  tileOkCount[key] = 0;
+  layer.on('tileerror', function() {
+    if (tileOkCount[key] === 0) tileStatus.textContent = 'Some tiles unavailable for this layer/zoom \u2013 try zooming in or out.';
+  });
+  layer.on('tileload', function() { tileOkCount[key]++; if (tileOkCount[key] >= 2) tileStatus.textContent = ''; });
+}
+Object.keys(baseLayers).forEach(function(k) {
+  var layer = baseLayers[k];
+  if (layer.getLayers) { layer.getLayers().forEach(function(child, i) { monitorLayer(k + '_' + i, child); }); }
+  else { monitorLayer(k, layer); }
+});
+
+modernFallback.addTo(map);
+var currentBase = baseLayers.os6inch;
+currentBase.addTo(map);
+
+document.getElementById('basemapSelect').addEventListener('change', function() {
+  map.removeLayer(currentBase);
+  if (useFallback) map.removeLayer(modernFallback);
+  currentBase = baseLayers[this.value];
+  useFallback = historicalKeys.indexOf(this.value) !== -1;
+  if (useFallback) modernFallback.addTo(map);
+  currentBase.addTo(map);
+  tileStatus.textContent = '';
+});
+
+var icon = L.divIcon({
+  className: '',
+  html: '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#B7472A" stroke="white" stroke-width="1.5" opacity="0.85"/></svg>',
+  iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -8]
+});
+var allMarkers = DATA.map(function(d) {
+  var yearStr = formatYears(d.years);
+  var popup = '<div class="popup-name">' + (d.name || 'Unknown') + '</div>' +
+    '<div class="popup-year">' + yearStr + '</div>' +
+    '<div class="popup-address">' + (d.address || '') + '</div>' +
+    '<div class="popup-source"><em>Advertising Pornography, 1822\u20131870</em></div>';
+  var m = L.marker([d.lat, d.lon], { icon: icon }).bindPopup(popup);
+  m._data = d;
+  return m;
+});
+
+var clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 25,
+  spiderfyOnMaxZoom: true,
+  spiderfyDistanceMultiplier: 3,
+  showCoverageOnHover: false,
+  disableClusteringAtZoom: 17,
+  iconCreateFunction: function(cluster) {
+    var c = cluster.getChildCount(), s = c > 20 ? 'large' : c > 8 ? 'medium' : 'small';
+    return L.divIcon({ html: '<div>' + c + '</div>', className: 'marker-cluster marker-cluster-' + s, iconSize: L.point(36, 36) });
+  }
+});
+map.addLayer(clusterGroup);
+
+var YEAR_MIN = 1820, YEAR_MAX = 1875;
+var currentYear = YEAR_MIN, windowSize = 0, isPlaying = false, playInterval = null;
+
+function updateMarkers() {
+  clusterGroup.clearLayers();
+  var count = 0;
+  allMarkers.forEach(function(marker) {
+    var d = marker._data;
+    if (windowSize === 0) { clusterGroup.addLayer(marker); count++; return; }
+    var yr = d.year;
+    if (!yr) return;
+    if (windowSize === 1) { if (d.years.indexOf(currentYear) === -1) return; }
+    else { if (yr < currentYear - windowSize || yr > currentYear + windowSize) return; }
+    clusterGroup.addLayer(marker);
+    count++;
+  });
+  document.getElementById('countDisplay').innerHTML = '<strong>' + count + '</strong> of ' + DATA.length + ' addresses shown';
+  updateHistogram();
+}
+
+var timeSlider = document.getElementById('timeSlider');
+var timeDisplay = document.getElementById('timeDisplay');
+var timeRangeLabel = document.getElementById('timeRangeLabel');
+var windowSelect = document.getElementById('windowSize');
+
+function updateTimeDisplay() {
+  windowSize = parseInt(windowSelect.value);
+  if (windowSize === 0) { timeDisplay.textContent = '1822 \u2013 1870'; timeRangeLabel.textContent = 'Showing all records'; }
+  else if (windowSize === 1) { timeDisplay.textContent = '' + currentYear; timeRangeLabel.textContent = 'Showing only ' + currentYear; }
+  else { timeDisplay.textContent = Math.max(YEAR_MIN, currentYear - windowSize) + ' \u2013 ' + Math.min(YEAR_MAX, currentYear + windowSize); timeRangeLabel.textContent = 'Centred on ' + currentYear; }
+}
+
+function goToYear(yr) {
+  yr = Math.max(YEAR_MIN, Math.min(YEAR_MAX, yr));
+  currentYear = yr;
+  timeSlider.value = yr;
+  if (windowSize === 0) { windowSelect.value = '1'; windowSize = 1; }
+  updateTimeDisplay();
+  updateMarkers();
+}
+
+timeSlider.addEventListener('input', function() { currentYear = parseInt(this.value); updateTimeDisplay(); updateMarkers(); });
+windowSelect.addEventListener('change', function() { updateTimeDisplay(); updateMarkers(); });
+
+var yearInput = document.getElementById('yearInput');
+document.getElementById('yearGoBtn').addEventListener('click', function() {
+  var v = parseInt(yearInput.value);
+  if (!isNaN(v)) goToYear(v);
+});
+yearInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { var v = parseInt(this.value); if (!isNaN(v)) goToYear(v); }
+});
+
+var playBtn = document.getElementById('playBtn');
+playBtn.addEventListener('click', function() { isPlaying ? stopPlay() : startPlay(); });
+function startPlay() {
+  isPlaying = true; playBtn.innerHTML = '&#9632; Stop';
+  if (windowSize === 0) { windowSelect.value = '10'; windowSize = 10; }
+  if (currentYear >= YEAR_MAX - 2) { currentYear = YEAR_MIN; timeSlider.value = YEAR_MIN; }
+  playInterval = setInterval(function() {
+    currentYear++;
+    if (currentYear > YEAR_MAX) { stopPlay(); return; }
+    timeSlider.value = currentYear;
+    updateTimeDisplay();
+    updateMarkers();
+  }, 400);
+}
+function stopPlay() { isPlaying = false; playBtn.innerHTML = '&#9654; Play'; clearInterval(playInterval); }
+
+// Histogram: count entries where the year appears in the years array
+// (not just d.year, which is the earliest year)
+function buildHistogram() {
+  var c = document.getElementById('histogram');
+  var labelsEl = document.getElementById('histLabels');
+  var startY = 1822, endY = 1870;
+  var counts = [];
+  for (var y = startY; y <= endY; y++) {
+    var n = 0;
+    for (var j = 0; j < DATA.length; j++) {
+      if (DATA[j].years && DATA[j].years.indexOf(y) !== -1) n++;
+    }
+    counts.push({ year: y, count: n });
+  }
+  var mx = Math.max.apply(null, counts.map(function(d) { return d.count; }).concat([1]));
+  c.innerHTML = '';
+  counts.forEach(function(d) {
+    var bar = document.createElement('div');
+    bar.className = 'hist-bar';
+    bar.style.height = Math.max(2, (d.count / mx) * 100) + '%';
+    bar.title = d.year + ': ' + d.count;
+    bar.dataset.year = d.year;
+    bar.addEventListener('click', function() { goToYear(d.year); });
+    c.appendChild(bar);
+  });
+  labelsEl.innerHTML = '';
+  for (var y = 1820; y <= 1870; y += 10) {
+    var span = document.createElement('span');
+    span.textContent = y;
+    labelsEl.appendChild(span);
+  }
+}
+
+function updateHistogram() {
+  document.querySelectorAll('.hist-bar').forEach(function(bar) {
+    var y = parseInt(bar.dataset.year);
+    if (windowSize === 0) bar.classList.add('active');
+    else if (windowSize === 1) bar.classList.toggle('active', y === currentYear);
+    else bar.classList.toggle('active', y >= currentYear - windowSize && y <= currentYear + windowSize);
+  });
+}
+
+document.getElementById('collapseBtn').addEventListener('click', function() {
+  var p = document.getElementById('controlPanel');
+  p.classList.toggle('collapsed');
+  this.textContent = p.classList.contains('collapsed') ? '+' : '\u2212';
+});
+
+// ─── Seller Lookup ───────────────────────────────────────────────
+var SELLER_COLORS = ['#2D6D6D','#2E5FA1','#C8973E','#6B7F4E','#7B4EA0','#C25D7B','#3A7CA5','#D4853A','#5C8A4E','#A0522D'];
+var selectedSellers = [];
+var sellerLines = [];
+var sellerHighlightMarkers = [];
+
+// Build unique sorted seller name list
+var sellerNames = [];
+var sellerNameSet = {};
+DATA.forEach(function(d) {
+  if (d.name && !sellerNameSet[d.name]) { sellerNameSet[d.name] = true; sellerNames.push(d.name); }
+});
+sellerNames.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+
+var sellerSearch = document.getElementById('sellerSearch');
+var sellerDropdown = document.getElementById('sellerDropdown');
+var sellerTagsEl = document.getElementById('sellerTags');
+var sellerSummaryEl = document.getElementById('sellerSummary');
+var sellerActionsEl = document.getElementById('sellerActions');
+var sellerNoteEl = document.getElementById('sellerNote');
+
+function getSellerColor(idx) { return SELLER_COLORS[idx % SELLER_COLORS.length]; }
+
+function renderDropdown(filter) {
+  var f = (filter || '').toLowerCase();
+  sellerDropdown.innerHTML = '';
+  var matches = sellerNames.filter(function(n) { return !f || n.toLowerCase().indexOf(f) !== -1; });
+  if (matches.length === 0) {
+    sellerDropdown.innerHTML = '<div style="padding:6px 8px;font-size:11px;color:var(--ink-light);">No matches</div>';
+    sellerDropdown.classList.add('open');
+    return;
+  }
+  matches.forEach(function(name) {
+    var div = document.createElement('div');
+    div.className = 'seller-option';
+    var selIdx = selectedSellers.indexOf(name);
+    if (selIdx !== -1) div.classList.add('selected');
+    var swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.style.background = selIdx !== -1 ? getSellerColor(selIdx) : 'var(--tan)';
+    div.appendChild(swatch);
+    div.appendChild(document.createTextNode(name));
+    div.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleSeller(name);
+      sellerSearch.value = '';
+      sellerDropdown.classList.remove('open');
+    });
+    sellerDropdown.appendChild(div);
+  });
+  sellerDropdown.classList.add('open');
+}
+
+sellerSearch.addEventListener('focus', function() { renderDropdown(this.value); });
+sellerSearch.addEventListener('input', function() { renderDropdown(this.value); });
+document.addEventListener('click', function(e) {
+  if (!sellerDropdown.contains(e.target) && e.target !== sellerSearch) sellerDropdown.classList.remove('open');
+});
+
+function toggleSeller(name) {
+  var idx = selectedSellers.indexOf(name);
+  if (idx !== -1) selectedSellers.splice(idx, 1);
+  else if (selectedSellers.length < 10) selectedSellers.push(name);
+  onSellerChange();
+}
+
+function removeSeller(name) {
+  var idx = selectedSellers.indexOf(name);
+  if (idx !== -1) selectedSellers.splice(idx, 1);
+  onSellerChange();
+}
+
+function clearSellers() {
+  selectedSellers = [];
+  onSellerChange();
+}
+
+function onSellerChange() {
+  renderTags();
+  renderSummary();
+  renderActions();
+  updateSellerHighlights();
+  sellerNoteEl.style.display = selectedSellers.length > 0 ? 'block' : 'none';
+}
+
+function renderTags() {
+  sellerTagsEl.innerHTML = '';
+  selectedSellers.forEach(function(name, i) {
+    var tag = document.createElement('span');
+    tag.className = 'seller-tag';
+    tag.style.background = getSellerColor(i);
+    tag.innerHTML = name + ' <span class="tag-x" title="Remove">&times;</span>';
+    tag.querySelector('.tag-x').addEventListener('click', function() { removeSeller(name); });
+    sellerTagsEl.appendChild(tag);
+  });
+}
+
+function renderActions() {
+  sellerActionsEl.innerHTML = '';
+  if (selectedSellers.length > 0) {
+    var btn = document.createElement('button');
+    btn.className = 'seller-clear-btn';
+    btn.textContent = 'Clear all';
+    btn.addEventListener('click', clearSellers);
+    sellerActionsEl.appendChild(btn);
+  }
+}
+
+function renderSummary() {
+  sellerSummaryEl.innerHTML = '';
+  selectedSellers.forEach(function(name, si) {
+    // Gather all entries for this seller sorted by earliest year
+    var entries = DATA.filter(function(d) { return d.name === name; })
+      .sort(function(a, b) { return a.year - b.year; });
+    if (entries.length === 0) return;
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'seller-summary-name';
+    nameDiv.style.color = getSellerColor(si);
+    nameDiv.textContent = name;
+    sellerSummaryEl.appendChild(nameDiv);
+    entries.forEach(function(e) {
+      var entry = document.createElement('div');
+      entry.className = 'seller-summary-entry';
+      entry.style.borderLeftColor = getSellerColor(si);
+      entry.innerHTML = '<span class="seller-summary-years">' + formatYears(e.years) + '</span> &mdash; ' + e.address;
+      sellerSummaryEl.appendChild(entry);
+    });
+  });
+}
+
+function updateSellerHighlights() {
+  // Clear previous highlights
+  sellerHighlightMarkers.forEach(function(m) { map.removeLayer(m); });
+  sellerHighlightMarkers = [];
+  sellerLines.forEach(function(l) { map.removeLayer(l); });
+  sellerLines = [];
+
+  if (selectedSellers.length === 0) {
+    // Restore normal appearance
+    allMarkers.forEach(function(m) { m.setIcon(icon); m.setOpacity(1); });
+    updateMarkers();
+    return;
+  }
+
+  // Dim all regular markers
+  allMarkers.forEach(function(m) { m.setOpacity(0.2); });
+  updateMarkers();
+
+  // For each selected seller, add highlight markers and path lines
+  selectedSellers.forEach(function(name, si) {
+    var color = getSellerColor(si);
+    var entries = DATA.filter(function(d) { return d.name === name; })
+      .sort(function(a, b) { return a.year - b.year; });
+
+    var highlightIcon = L.divIcon({
+      className: '',
+      html: '<svg width="20" height="20" viewBox="0 0 20 20">' +
+        '<circle cx="10" cy="10" r="8" fill="' + color + '" stroke="white" stroke-width="2" opacity="0.95"/>' +
+        '</svg>',
+      iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10]
+    });
+
+    var latlngs = [];
+    entries.forEach(function(e, idx) {
+      var yearStr = formatYears(e.years);
+      var popup = '<div class="popup-name" style="color:' + color + '">' + e.name + '</div>' +
+        '<div class="popup-year">' + yearStr + '</div>' +
+        '<div class="popup-address">' + e.address + '</div>' +
+        (entries.length > 1 ? '<div style="font-size:10px;color:var(--ink-light);margin-top:4px;">Address ' + (idx + 1) + ' of ' + entries.length + '</div>' : '') +
+        '<div class="popup-source"><em>Advertising Pornography, 1822\u20131870</em></div>';
+      var m = L.marker([e.lat, e.lon], { icon: highlightIcon, zIndexOffset: 1000 }).bindPopup(popup).addTo(map);
+      sellerHighlightMarkers.push(m);
+      latlngs.push([e.lat, e.lon]);
+    });
+
+    // Draw connecting line if multiple addresses
+    if (latlngs.length > 1) {
+      var line = L.polyline(latlngs, {
+        color: color, weight: 2.5, opacity: 0.7,
+        dashArray: '6,4', smoothFactor: 1
+      }).addTo(map);
+      sellerLines.push(line);
+    }
+  });
+
+  // Fit map to show all highlighted markers
+  var allHighlightLatLngs = sellerHighlightMarkers.map(function(m) { return m.getLatLng(); });
+  if (allHighlightLatLngs.length > 0) {
+    var bounds = L.latLngBounds(allHighlightLatLngs);
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16 });
+  }
+}
+
+buildHistogram();
+updateTimeDisplay();
+updateMarkers();
+</script>
+</body>
+</html>
