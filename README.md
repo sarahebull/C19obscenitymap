@@ -71,7 +71,7 @@ Features:
 - Direct year input box
 - Animated playback across the date range
 - Marker clustering that breaks apart at higher zoom levels
-- Choice of base maps: modern (OpenStreetMap greyscale or colour) and historic Ordinance Survey layers for London
+- Choice of base maps: modern (OpenStreetMap greyscale or colour) and historic Ordnance Survey layers for London
 
 To embed the map on a website, host the HTML file and use an iframe:
 
